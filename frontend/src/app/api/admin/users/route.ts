@@ -46,6 +46,7 @@ export async function GET() {
   const items = users.map((u: any) => ({
     id: u?.id ?? null,
     username: u?.username ?? null,
+    displayUsername: u?.displayUsername ?? null,
     name: u?.name ?? null,
     email: u?.email ?? null,
     role: u?.role ?? null,
@@ -106,10 +107,10 @@ export async function POST(req: NextRequest) {
     await client.query(
       `
       UPDATE auth."user"
-      SET username = $1
-      WHERE id = $2
+      SET username = $1, "displayUsername" = $2
+      WHERE id = $3
       `,
-      [username, createdId],
+      [username.toLowerCase(), username, createdId],
     );
 
     return NextResponse.json({ ok: true, user: { id: createdId } });

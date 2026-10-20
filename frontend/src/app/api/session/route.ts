@@ -15,6 +15,6 @@ export async function GET() {
     authenticated: !!session,
     userId: session?.user?.id ?? null,
     role: session?.user?.role ?? null,
-    username: session?.user?.username ?? session?.user?.name ?? session?.user?.email ?? null,
+    username: session?.user?.displayUsername ?? session?.user?.username ?? session?.user?.name ?? session?.user?.email ?? null,
   });
 }

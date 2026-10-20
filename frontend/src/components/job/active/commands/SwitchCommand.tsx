@@ -11,6 +11,7 @@ import { useDialogs } from '@toolpad/core/useDialogs';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import axios from '@/lib/axios';
 import { SwitchCommandResponse } from '@/types/job';
+import { useSessionInfo } from '@/providers/SessionContext';
 import { CommandProps } from "@/components/job/active/commands";
 
 
@@ -24,6 +25,8 @@ export default function SwitchCommand({
   const dialogs = useDialogs();
   const notifications = useNotifications();
   const translate = useTranslations("Node.job.active");
+  const translateError = useTranslations("Error");
+  const session = useSessionInfo();
   const [checked, setChecked] = useState(command.value);
 
   useEffect(() => {
@@ -51,10 +54,16 @@ export default function SwitchCommand({
       })
       setChecked(nextChecked)
     } catch {
-      notifications.show(translate("button.error", {job: job.name, cmd: nextChecked ? command.label_on : command.label_off}), {
-        severity: 'error',
-        autoHideDuration: 3000,
-      })
+      const errorMessage = translate("button.error", {job: job.name, cmd: nextChecked ? command.label_on : command.label_off});
+      notifications.show(
+        session?.authenticated === false
+          ? `${errorMessage} / ${translateError("statusCode.401")}`
+          : errorMessage,
+        {
+          severity: 'error',
+          autoHideDuration: 3000,
+        },
+      )
     }
   };
 

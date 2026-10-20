@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
   Autocomplete,
+  Box,
   Button,
   Stack,
   TextField,
@@ -143,12 +144,28 @@ export default function JobCreatePage() {
   };
 
   return (
-    <PageContainer title={translate("name")}>
+    <PageContainer
+      title={translate("name")}
+      maxWidth={false}
+      sx={{
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       {(!blockList || !toolbox || !jobNameList) ? (
         <Typography>Loading...</Typography>
        ) : (
-        <Stack spacing={2}>
-          <Stack direction={{xs: "column", sm: "row"}} spacing={2}>
+        <Stack
+          spacing={2}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
+          <Stack direction={{xs: "column", sm: "row"}} spacing={2} sx={{ flexShrink: 0, }}>
             {/* ジョブ名選択 */}
             <Autocomplete
               freeSolo
@@ -195,13 +212,22 @@ export default function JobCreatePage() {
               {translate("save.button")}
             </Button>
           </Stack>
-
-          <BlocklyEditor
-            blockList={blockList}
-            toolbox={toolbox}
-            workspace={workspace}
-            setCurrentWorkspace={setCurrentWorkspace}
-          />
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              minWidth: 0,
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <BlocklyEditor
+              blockList={blockList}
+              toolbox={toolbox}
+              workspace={workspace}
+              setCurrentWorkspace={setCurrentWorkspace}
+            />
+          </Box>
         </Stack>
       )}
     </PageContainer>

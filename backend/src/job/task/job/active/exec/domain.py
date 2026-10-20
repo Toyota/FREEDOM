@@ -37,7 +37,7 @@ class Domain(abstract.statement.Domain):
     def __post_init__(self):
         """インスタンス後処理"""
         super().__post_init__()
-        self.can_recover = self.can_recover == "OK"
+        self.can_recover = self.can_recover if type(self.can_recover) is bool else self.can_recover == "OK"
 
     @classmethod
     async def define_block(cls) -> list[dict]:

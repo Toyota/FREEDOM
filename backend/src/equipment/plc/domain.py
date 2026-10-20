@@ -49,7 +49,7 @@ class BitAddress(Address):
         name (str): 名前
         address (str): アドレス
         bit (int): ビット
-        default (bool|None): 初期値
+        default (bool|None): 既定値
         data (bool): データ
     """
     bit: int = 0
@@ -57,7 +57,7 @@ class BitAddress(Address):
 
     def __post_init__(self):
         """初期化後処理"""
-        self.data = self.default if self.default is not None else False
+        self.data = bool(self.default)
 
     @classmethod
     def make_form(cls):
@@ -76,7 +76,7 @@ class BitAddress(Address):
             "default": {
                 "type": "select",
                 "label": "既定値",
-                "items": {"読取り専用": None, "1": True, "0": False},
+                "items": {"読取り専用": None, "0": False, "1": True},
                 "required": False,
             }
         }
@@ -97,8 +97,8 @@ class WordAddress(Address):
 
 
 @dataclasses.dataclass
-class CycleBitAddress(Address):
-    """周期ビットアドレス設定
+class HeartbeatAddress(Address):
+    """ハートビートアドレス設定
     Attributes:
         enable (bool): 有効
         name (str): 名前
@@ -147,9 +147,10 @@ class NodeDomain(abstract.Domain):
         port (int): ポート番号
         timeout (float): 通信タイムアウト
         update_cycle (float): 更新周期
+        retry_count (int): リトライ回数
         bit_addresses: (list[BitAddress]): ビットアドレス設定リスト
         word_addresses: (list[WordAddress]): ワードアドレス設定リスト
-        heartbeat_addresses: (list[CycleBitAddress]): ハートビートアドレス設定リスト
+        heartbeat_addresses: (list[HeartbeatAddress]): ハートビートアドレス設定リスト
     """
     enable: bool = True
     name: str = ""
@@ -159,9 +160,10 @@ class NodeDomain(abstract.Domain):
     port: int = 80
     timeout: float = 1.0
     update_cycle: float = 1.0
+    retry_count: int = 0
     bit_addresses: list[BitAddress] = dataclasses.field(default_factory=list)
     word_addresses: list[WordAddress] = dataclasses.field(default_factory=list)
-    heartbeat_addresses: list[CycleBitAddress] = dataclasses.field(default_factory=list)
+    heartbeat_addresses: list[HeartbeatAddress] = dataclasses.field(default_factory=list)
 
     @classmethod
     def make_form(cls):
@@ -204,6 +206,18 @@ class NodeDomain(abstract.Domain):
                 "suffix": "秒",
                 "min": 0,
             },
+            "update_cycle": {
+                "type": "number",
+                "label": "更新周期",
+                "suffix": "秒",
+                "min": 0,
+            },
+            "retry_count": {
+                "type": "number",
+                "label": "リトライ回数",
+                "integer": True,
+                "min": 0,
+            },
             "bit_addresses": {
                 "type": "table",
                 "label": "ビットアドレス設定",
@@ -221,8 +235,8 @@ class NodeDomain(abstract.Domain):
             "heartbeat_addresses": {
                 "type": "table",
                 "label": "ハートビート設定",
-                "default": dataclasses.asdict(CycleBitAddress()),
-                "forms": CycleBitAddress.make_form(),
+                "default": dataclasses.asdict(HeartbeatAddress()),
+                "forms": HeartbeatAddress.make_form(),
                 "width": 800,
             },
         }
@@ -231,7 +245,7 @@ class NodeDomain(abstract.Domain):
         """初期化後処理"""
         self.bit_addresses = [BitAddress(**address) for address in self.bit_addresses if address.get("enable", False)]
         self.word_addresses = [WordAddress(**address) for address in self.word_addresses if address.get("enable", False)]
-        self.heartbeat_addresses = [CycleBitAddress(**address) for address in self.heartbeat_addresses if address.get("enable", False)]
+        self.heartbeat_addresses = [HeartbeatAddress(**address) for address in self.heartbeat_addresses if address.get("enable", False)]
 
 
 @dataclasses.dataclass

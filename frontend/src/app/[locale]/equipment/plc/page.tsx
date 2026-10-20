@@ -27,6 +27,7 @@ import StatusChip from "@/components/map/StatusChip";
 import type { NodeStatus } from "@/types/node";
 import type { NodeMarkerItem } from "@/types/map";
 import PlcAddressTable, { type PlcAddressRow } from "./AddressStatusTable";
+import { useSessionInfo } from "@/providers/SessionContext";
 
 const NodeMarkers = dynamic(() => import("@/components/map/NodeMarkers"), {
   ssr: false,
@@ -59,7 +60,9 @@ type PlcAddressResponse = {
 
 export default function PlcDetailPage() {
   const translate = useTranslations("Node.equipment.plc");
+  const translateError = useTranslations("Error");
   const notifications = useNotifications();
+  const session = useSessionInfo();
 
   const [items, setItems] = useState<NodeStatus[]>([]);
   const [addressesByNode, setAddressesByNode] = useState<AddressesByNode>({});
@@ -183,17 +186,20 @@ export default function PlcDetailPage() {
           { severity: "success", autoHideDuration: 3000 },
         );
         return res.data;
-      } catch {
+      } catch (error) {
+        const errorMessage = translate("dialog.error", {
+          node: nodeName ?? "",
+          command:
+            typeof data === "boolean"
+              ? data
+                ? translate("button.on")
+                : translate("button.off")
+              : translate("button.writeWord", {value: data}),
+        });
         notifications.show(
-          translate("dialog.error", {
-            node: nodeName ?? "",
-            command:
-              typeof data === "boolean"
-                ? data
-                  ? translate("button.on")
-                  : translate("button.off")
-                : translate("button.writeWord", {value: data}),
-          }),
+          session?.authenticated === false
+            ? `${errorMessage} / ${translateError("statusCode.401")}`
+            : errorMessage,
           { severity: "error", autoHideDuration: 3000 },
         );
       }

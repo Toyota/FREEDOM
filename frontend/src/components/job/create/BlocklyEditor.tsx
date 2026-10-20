@@ -6,6 +6,7 @@
 import React, { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
+import { Box } from '@mui/material';
 import * as Blockly from "blockly/core";
 import "blockly/blocks";
 import "blockly/javascript";
@@ -41,8 +42,8 @@ export default function BlocklyEditor ({
   workspace,
   setCurrentWorkspace,
 }: BlocklyEditorProps ) {
-  const blocklyDivRef = useRef<HTMLDivElement | null>(null);
-  const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
+  const blocklyDivRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<Blockly.WorkspaceSvg>(null);
   const translate = useTranslations("Node");
   const locale = useLocale();
 
@@ -105,14 +106,16 @@ export default function BlocklyEditor ({
 
   /** 初期化処理 */
   useEffect(() => {
-    let disposed = false
-
     /** 内容変更イベント */
     const onChange = (event: Blockly.Events.Abstract) => {
       if (event.isUiEvent) return;
       enforceOnlyFirstTree();
       setCurrentWorkspace(Blockly.serialization.workspaces.save(workspaceRef.current!));
     };
+
+    const resizeObserver = new ResizeObserver(() => {
+      Blockly.svgResize(workspaceRef.current!);
+    });
 
     const init = async() => {
       if (!blocklyDivRef.current || workspaceRef.current) return;
@@ -135,21 +138,16 @@ export default function BlocklyEditor ({
       setCurrentWorkspace(Blockly.serialization.workspaces.save(workspaceRef.current));
       enforceOnlyFirstTree();
       workspaceRef.current.addChangeListener(onChange);
-
-      if (disposed) {
-        workspaceRef.current.removeChangeListener(onChange);
-        workspaceRef.current.dispose();
-        return;
-      }
+      resizeObserver.observe(blocklyDivRef.current);
     }
+
     init()
 
     return () => {
-      disposed = true;
+      resizeObserver.disconnect();
       if (workspaceRef.current) {
         workspaceRef.current.removeChangeListener(onChange);
         workspaceRef.current.dispose();
-        workspaceRef.current = null;
       }
     };
   }, []);
@@ -175,8 +173,8 @@ export default function BlocklyEditor ({
   }, [workspace])
 
   return (
-    <div ref={blocklyDivRef} style={{ height: "600px", width: "100%" }}>
+    <Box ref={blocklyDivRef} sx={{ position: 'absolute', inset: 0, }}>
       {extensions.map((Extension, index) => ( <Extension key={index} />))}
-    </div>
+    </Box>
   );
 };

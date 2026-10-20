@@ -82,7 +82,8 @@ class Node(abstract.Node):
         if not self.domain.error_msg:
             raise Exception(f"{self.domain.id}-{self.domain.name} has already recover")
         self.domain.command.recover(self.domain.task, id)
-        self._logger.info("recover")
+        task = self._task_logic.retrieve_task()
+        self._logger.info(f"recover task={task.domain.name if task else None}")
         self.domain.warning_msg.clear()
         error_msg = set()
         try:
@@ -109,12 +110,8 @@ class Node(abstract.Node):
         task = self._task_logic.retrieve_task(id)
         if task is None:
             raise Exception(f"Failed to exec_command: {id=} does not exist")
-        try:
-            ret = await task.exec_command(command)
-            self._logger.info(f"exec_command: {command=} {id=}")
-        except Exception as e:
-            self.domain.error_msg.add(str(e))
-            raise
+        ret = await task.exec_command(command)
+        self._logger.info(f"exec_command: {command=} {id=}")
         return ret
 
     def retrieve_variables(self, **kwargs):

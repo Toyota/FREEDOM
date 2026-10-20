@@ -45,6 +45,7 @@ type AllowItem = {
 type UserItem = {
   id: string;
   username: string | null;
+  displayUsername: string | null;
   name: string | null;
   email: string | null;
   role: string | null;
@@ -64,7 +65,8 @@ function setsEqual(a: Set<string>, b: Set<string>) {
 
 function userLabel(u: UserItem) {
   const parts: string[] = [];
-  if (u.username) parts.push(u.username);
+  if (u.displayUsername) parts.push(u.displayUsername);
+  else if (u.username) parts.push(u.username);
   else if (u.name) parts.push(u.name);
   else if (u.email) parts.push(u.email);
   if (u.role) parts.push(`(${u.role})`);

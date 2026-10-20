@@ -12,6 +12,7 @@ import { blue } from '@mui/material/colors';
 import { useDialogs } from '@toolpad/core/useDialogs';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { StatementTaskResponse, TaskCommandResponse } from '@/types/job';
+import { useSessionInfo } from '@/providers/SessionContext';
 import { CommandProps, CommandMap } from "@/components/job/active/commands";
 
 
@@ -27,6 +28,8 @@ export default function TaskCommand({
   const dialogs = useDialogs();
   const notifications = useNotifications();
   const translate = useTranslations("Node.job.active");
+  const translateError = useTranslations("Error");
+  const session = useSessionInfo();
 
   /** タスク復帰 */
   const handleRecover = async (id: string, taskName: string) => {
@@ -48,10 +51,16 @@ export default function TaskCommand({
         autoHideDuration: 3000,
       })
     } catch {
-      notifications.show(translate("recover.error", {job: job.name}), {
-        severity: 'error',
-        autoHideDuration: 3000,
-      })
+      const errorMessage = translate("recover.error", {job: job.name});
+      notifications.show(
+        session?.authenticated === false
+          ? `${errorMessage} / ${translateError("statusCode.401")}`
+          : errorMessage,
+        {
+          severity: 'error',
+          autoHideDuration: 3000,
+        },
+      )
     }
   };
 

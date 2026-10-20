@@ -32,7 +32,7 @@ class Logic[D:Domain](abstract.value.Logic[D], abc.ABC):
         Returns:
             typing.Any: 実行結果
         """
-        self._logger.error(f"Failed to exec_command: name={self.domain.name=} {command=}")
+        self._logger.info(f"Failed to exec_command: name={self.domain.name} {command=}")
         raise Exception(f"Failed to command")
 
     def retrieve_task(self, id:str|None=None) -> typing.Optional["Logic[Domain]"]:

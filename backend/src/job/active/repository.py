@@ -17,7 +17,7 @@ class Repository(repository.Repository[Node]):
         """
         # 設定更新時は旧リポジトリを削除
         if old := repository.repository.retrieve(self.__class__):
-            repository.repository.remove(old[0])
+            repository.repository.pop(next(i for i, item in enumerate(repository.repository) if item is old[0]))
             old[0]._task.cancel()
         super().__init__()
         self.domain = Domain(**config)

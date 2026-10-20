@@ -75,7 +75,7 @@ class Domain(abstract.statement.Domain):
                 {
                     "type": "field_input",
                     "name": "label_off",
-                    "text": "この週で終了"
+                    "text": "この周で終了"
                 },
                 {"type": "input_dummy"},
                 {

@@ -50,6 +50,7 @@ import { useNotifications } from "@toolpad/core/useNotifications";
 type UserItem = {
   id: string;
   username: string | null;
+  displayUsername: string | null;
   name: string | null;
   email: string | null;
   role: string | null;
@@ -60,7 +61,7 @@ const ROLE_ALL = "__all__";
 const ROLE_NONE = "__none__";
 
 function displayUserName(u: UserItem) {
-  return u.username ?? u.name ?? u.email ?? u.id;
+  return u.displayUsername ??  u.username ?? u.name ?? u.email ?? u.id;
 }
 
 async function readApiErrorCode(res: Response): Promise<string | null> {

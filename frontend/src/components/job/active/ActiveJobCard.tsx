@@ -11,6 +11,7 @@ import { red, lightGreen, yellow } from '@mui/material/colors';
 import { useDialogs } from '@toolpad/core/useDialogs';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import axios from '@/lib/axios';
+import { useSessionInfo } from '@/providers/SessionContext';
 import { JobActiveResponse, StatementTaskResponse } from '@/types/job';
 import TaskCommand from '@/components/job/active/commands/TaskCommand';
 import { formatJaKanjiMdHms } from '@/lib/datetime';
@@ -70,6 +71,8 @@ export default function ActiveJobCard({
   const dialogs = useDialogs();
   const notifications = useNotifications();
   const translate = useTranslations("Node.job.active");
+  const translateError = useTranslations("Error");
+  const session = useSessionInfo();
   const currentTask = useMemo(
     () => findDeepestCurrentTask(job.task),
     [job.task],
@@ -94,10 +97,16 @@ export default function ActiveJobCard({
         autoHideDuration: 3000,
       })
     } catch {
-      notifications.show(translate("stop.error", {job: job.name}), {
-        severity: 'error',
-        autoHideDuration: 3000,
-      })
+      const errorMessage = translate("stop.error", {job: job.name});
+      notifications.show(
+        session?.authenticated === false
+          ? `${errorMessage} / ${translateError("statusCode.401")}`
+          : errorMessage,
+        {
+          severity: 'error',
+          autoHideDuration: 3000,
+        },
+      )
     }
   };
 
@@ -122,10 +131,16 @@ export default function ActiveJobCard({
         autoHideDuration: 3000,
       })
     } catch {
-      notifications.show(translate("recover.error", {job: job.name}), {
-        severity: 'error',
-        autoHideDuration: 3000,
-      })
+      const errorMessage = translate("recover.error", {job: job.name});
+      notifications.show(
+        session?.authenticated === false
+          ? `${errorMessage} / ${translateError("statusCode.401")}`
+          : errorMessage,
+        {
+          severity: 'error',
+          autoHideDuration: 3000,
+        },
+      )
     }
   };
 
@@ -148,10 +163,16 @@ export default function ActiveJobCard({
         autoHideDuration: 3000,
       })
     } catch {
-      notifications.show(translate("cancel.error", {job: job.name}), {
-        severity: 'error',
-        autoHideDuration: 3000,
-      })
+      const errorMessage = translate("cancel.error", {job: job.name});
+      notifications.show(
+        session?.authenticated === false
+          ? `${errorMessage} / ${translateError("statusCode.401")}`
+          : errorMessage,
+        {
+          severity: 'error',
+          autoHideDuration: 3000,
+        },
+      )
     }
   };
 

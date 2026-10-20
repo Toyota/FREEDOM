@@ -5,7 +5,7 @@ import asyncio
 
 from src import abstract, freedom, job, util
 from src.repository import repository
-from src.equipment.plc import NodeDomain, BitAddress, CycleBitAddress, Interface, access
+from src.equipment.plc import NodeDomain, BitAddress, WordAddress, HeartbeatAddress, Interface, access
 
 
 class Node(abstract.Node):
@@ -65,10 +65,12 @@ class Node(abstract.Node):
         for address in self.domain.bit_addresses + self.domain.word_addresses:
             if address.name == name:
                 if isinstance(address, BitAddress):
-                    ret = await self._access.read_bit(address.address, address.bit)
+                    ret = await self._read_bit(address)
                 else:
-                    ret = await self._access.read_word(address.address)
-                address.data = ret
+                    ret = await self._read_word(address)
+                if address.data != ret:
+                    self._logger.info(f"read: {name=} data={ret}")
+                    address.data = ret
                 return ret
         else:
             raise ValueError(f"Address not found: {name=}")
@@ -95,9 +97,9 @@ class Node(abstract.Node):
                                 return
                         else:
                             job_ids.add(job_id)
-                    await self._access.write_bit(address.address, address.bit, data)
+                    await self._write_bit(address, data)
                 else:
-                    await self._access.write_word(address.address, data)
+                    await self._write_word(address, data)
                 address.data = data
                 self._logger.info(f"write: {name=} {data=} {job_id=}")
                 return
@@ -122,12 +124,12 @@ class Node(abstract.Node):
         """状態更新"""
         try:
             for bit_address in self.domain.bit_addresses:
-                data = await self._access.read_bit(bit_address.address, bit_address.bit)
+                data = await self._read_bit(bit_address)
                 if bit_address.data != data:
                     self._logger.info(f"update read: {bit_address.name=} {data=}")
                     bit_address.data = data
             for word_address in self.domain.word_addresses:
-                data = await self._access.read_word(word_address.address)
+                data = await self._read_word(word_address)
                 if word_address.data != data:
                     self._logger.info(f"update read: {word_address.name=} {data=}")
                     word_address.data = data
@@ -141,11 +143,11 @@ class Node(abstract.Node):
                         job_ids = {job_id for job_id in job_ids if repository.retrieve(job.active.Node, id=job_id)}
                         self._address_map[name] = job_ids
                         if not job_ids:
-                            await self._access.write_bit(address.address, address.bit, address.default)
+                            await self._write_bit(address, address.default)
                             address.data = address.default
                             self._logger.info(f"update write: {address.name=} {address.data=}")
                         elif address.data == address.default:
-                            await self._access.write_bit(address.address, address.bit, not address.default)
+                            await self._write_bit(address, not address.default)
                             address.data = not address.default
                             self._logger.info(f"update write: {address.name=} {address.data=}")
             is_waiting = all(address.data == address.default for address in self.domain.bit_addresses if address.default is not None)
@@ -155,14 +157,74 @@ class Node(abstract.Node):
                 self._logger.error(f"Failed to update: {type(e)} - {e}")
             self._state = util.status.State.DISCONNECT
 
-    async def _heartbeat_loop(self, address:CycleBitAddress):
+    async def _heartbeat_loop(self, address:HeartbeatAddress):
         """ハートビート処理"""
         while True:
             try:
-                data = await self._access.read_bit(address.address, address.bit)
-                await self._access.write_bit(address.address, address.bit, not data)
+                data = await self._read_bit(address)
+                await self._write_bit(address, not data)
             except Exception as e:
                 if self._state != util.status.State.DISCONNECT:
                     self._logger.error(f"Failed to update: {type(e)} - {e}")
                 self._state = util.status.State.DISCONNECT
             await asyncio.sleep(address.interval)
+
+    async def _read_bit(self, address:BitAddress) -> bool:
+        """ビットアドレス読込み
+        Args:
+            address (BitAddress): アドレス
+        Returns:
+            bool: 読込み値
+        """
+        for cnt in range(self.domain.retry_count):
+            try:
+                return await self._access.read_bit(address.address, address.bit)
+            except Exception as e:
+                if self._state != util.status.State.DISCONNECT:
+                    self._logger.warning(f"Attempt {cnt+1} failed to read bit: {type(e)} - {e}, name={address.name}")
+        return await self._access.read_bit(address.address, address.bit)
+
+    async def _write_bit(self, address:BitAddress, data:bool):
+        """ビットアドレス書込み
+        Args:
+            address (BitAddress): アドレス
+            data (bool): 書込み値
+        """
+        for cnt in range(self.domain.retry_count):
+            try:
+                await self._access.write_bit(address.address, address.bit, data)
+                return
+            except Exception as e:
+                if self._state != util.status.State.DISCONNECT:
+                    self._logger.warning(f"Attempt {cnt+1} failed to write bit: {type(e)} - {e}, name={address.name} {data=}")
+        await self._access.write_bit(address.address, address.bit, data)
+
+    async def _read_word(self, address:WordAddress) -> int:
+        """ワードアドレス読込み
+        Args:
+            address (WordAddress): アドレス
+        Returns:
+            int: 読込み値
+        """
+        for cnt in range(self.domain.retry_count):
+            try:
+                return await self._access.read_word(address.address)
+            except Exception as e:
+                if self._state != util.status.State.DISCONNECT:
+                    self._logger.warning(f"Attempt {cnt+1} failed to read word: {type(e)} - {e}, name={address.name}")
+        return await self._access.read_word(address.address)
+
+    async def _write_word(self, address:WordAddress, data:int):
+        """ワードアドレス書込み
+        Args:
+            address (WordAddress): アドレス
+            data (int): 書込み値
+        """
+        for cnt in range(self.domain.retry_count):
+            try:
+                await self._access.write_word(address.address, data)
+                return
+            except Exception as e:
+                if self._state != util.status.State.DISCONNECT:
+                    self._logger.warning(f"Attempt {cnt+1} failed to write word: {type(e)} - {e}, name={address.name} {data=}")
+        await self._access.write_word(address.address, data)

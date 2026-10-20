@@ -10,6 +10,7 @@ import axios from '@/lib/axios';
 import { useDialogs } from '@toolpad/core/useDialogs';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { ButtonCommandResponse } from '@/types/job';
+import { useSessionInfo } from '@/providers/SessionContext';
 import { CommandProps } from "@/components/job/active/commands";
 
 
@@ -23,6 +24,8 @@ export default function ButtonCommand({
   const dialogs = useDialogs();
   const notifications = useNotifications();
   const translate = useTranslations("Node.job.active");
+  const translateError = useTranslations("Error");
+  const session = useSessionInfo();
 
   /** ボタン押下 */
   const handleCommand = async (e: React.MouseEvent<Element>) => {
@@ -45,10 +48,16 @@ export default function ButtonCommand({
         autoHideDuration: 3000,
       })
     } catch {
-      notifications.show(translate("button.error", {job: job.name, cmd: command.label}), {
-        severity: 'error',
-        autoHideDuration: 3000,
-      })
+      const errorMessage = translate("button.error", {job: job.name, cmd: command.label});
+      notifications.show(
+        session?.authenticated === false
+          ? `${errorMessage} / ${translateError("statusCode.401")}`
+          : errorMessage,
+        {
+          severity: 'error',
+          autoHideDuration: 3000,
+        },
+      )
     }
   };
 
